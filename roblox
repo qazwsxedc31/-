@@ -1,0 +1,105 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local Camera = game:GetService("Workspace").CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local AimBotEnabled = false
+local TargetPart = "Head"
+local Gui
+
+-- GUI 생성
+local function CreateGUI()
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Parent = game.CoreGui
+    Gui = ScreenGui
+
+    local Frame = Instance.new("Frame")
+    Frame.Size = UDim2.new(0, 200, 0, 150)
+    Frame.Position = UDim2.new(0.5, -100, 0.5, -75)
+    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    Frame.BorderSizePixel = 0
+    Frame.Active = true
+    Frame.Draggable = true
+    Frame.Parent = ScreenGui
+
+    local Title = Instance.new("TextLabel")
+    Title.Size = UDim2.new(1, 0, 0, 30)
+    Title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    Title.Text = "Alpha's AimBot"
+    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Title.TextSize = 18
+    Title.Font = Enum.Font.SourceSansBold
+    Title.Parent = Frame
+
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Size = UDim2.new(0.8, 0, 0, 40)
+    ToggleButton.Position = UDim2.new(0.1, 0, 0, 40)
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    ToggleButton.Text = "Enable AimBot"
+    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleButton.TextSize = 16
+    ToggleButton.Font = Enum.Font.SourceSans
+    ToggleButton.Parent = Frame
+
+    local TargetPartBox = Instance.new("TextBox")
+    TargetPartBox.Size = UDim2.new(0.8, 0, 0, 30)
+    TargetPartBox.Position = UDim2.new(0.1, 0, 0, 90)
+    TargetPartBox.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    TargetPartBox.Text = "Head"
+    TargetPartBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TargetPartBox.TextSize = 14
+    TargetPartBox.Font = Enum.Font.SourceSans
+    TargetPartBox.Parent = Frame
+
+    ToggleButton.MouseButton1Click:Connect(function()
+        AimBotEnabled = not AimBotEnabled
+        ToggleButton.Text = AimBotEnabled and "Disable AimBot" or "Enable AimBot"
+        ToggleButton.BackgroundColor3 = AimBotEnabled and Color3.fromRGB(0, 120, 0) or Color3.fromRGB(70, 70, 70)
+    end)
+
+    TargetPartBox.FocusLost:Connect(function()
+        TargetPart = TargetPartBox.Text
+    end)
+end
+
+-- 에임봇 로직
+local function GetClosestPlayer()
+    local closestPlayer = nil
+    local closestDistance = math.huge
+    local localPos = LocalPlayer.Character and LocalPlayer.Character.HumanoidRootPart.Position
+
+    if not localPos then return nil end
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild(TargetPart) then
+            local targetPos = player.Character[TargetPart].Position
+            local distance = (localPos - targetPos).Magnitude
+            if distance < closestDistance then
+                closestDistance = distance
+                closestPlayer = player
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+local function AimAtTarget()
+    if not AimBotEnabled then return end
+    local target = GetClosestPlayer()
+    if target and target.Character and target.Character:FindFirstChild(TargetPart) then
+        local targetPos = target.Character[TargetPart].Position
+        Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+    end
+end
+
+-- 초기화
+CreateGUI()
+RunService.RenderStepped:Connect(AimAtTarget)
+
+-- GUI 종료 처리
+game.CoreGui.ChildRemoved:Connect(function(child)
+    if child == Gui then
+        AimBotEnabled = false
+    end
+end)
